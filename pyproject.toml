@@ -1,0 +1,50 @@
+[tool.poetry]
+name = "nb"
+version = "2.0.0"
+description = "The ultimate tool to automate custom telegram message forwarding."
+authors = ["artai8 <daw@artai8.dev>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+requests = "^2.31.0"
+typer = "^0.12.0"
+python-dotenv = "^1.0.1"
+pydantic = "^2.7.0"
+Telethon = "1.42.0"
+# cryptg = "^0.4.0"  <-- 务必注释掉，这是 CI 构建失败的万恶之源
+Pillow = "^10.3.0"
+hachoir = "^3.3.0"
+aiohttp = "^3.9.5"
+"watermark.py" = "^0.0.3"
+pytesseract = "^0.3.10"
+rich = "^13.7.1"
+streamlit = "^1.37.0"
+streamlit-autorefresh = "^1.0.1"
+altair = "^5.2.0"
+PyYAML = "^6.0.1"
+pymongo = "^4.6.3"
+fastapi = "^0.115.0"
+uvicorn = {version = "^0.34.0", extras = ["standard"]}
+cryptography = "^44.0.0"
+qrcode = {version = "^8.0", extras = ["pil"]}
+python-multipart = "^0.0.20"
+
+[tool.poetry.scripts]
+nb = 'nb.cli:app'
+nb-web = 'nb.web_ui.run:main'
+nb-api = 'nb.multitenant.api:main'
+nb-bot = 'nb.multitenant.control_bot:main'
+nb-worker = 'nb.multitenant.worker:main'
+nb-dashboard = 'nb.multitenant.dashboard:main'
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.0"
+pytest-asyncio = "^0.25.0"
+httpx = "^0.28.0"
+mongomock = "^4.3.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

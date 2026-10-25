@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+  <title>NB 多租户转发</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="stylesheet" href="/miniapp/static/style.css">
+</head>
+<body>
+  <main>
+    <header><h1>NB 转发任务</h1><button id="refresh">刷新</button></header>
+    <p id="notice">正在连接 Telegram…</p>
+    <section id="account" class="card"></section>
+    <section id="tasks"></section>
+    <button id="newTask" class="primary">新建任务</button>
+    <section id="admin" hidden></section>
+  </main>
+
+  <dialog id="editor">
+    <form id="taskForm">
+      <input id="taskId" type="hidden">
+      <input id="revision" type="hidden">
+      <label>任务名称<input id="name" maxlength="100" required></label>
+      <label>运行模式<select id="mode"><option value="live">实时</option><option value="past">历史</option><option value="schedule">定时</option></select></label>
+      <label>来源（每行一个 ID、@用户名或公开链接）<textarea id="sources" rows="4"></textarea></label>
+      <label>目标（每行一个）<textarea id="destinations" rows="4"></textarea></label>
+      <fieldset><legend>关键词过滤</legend>
+        <label><input id="filterEnabled" type="checkbox"> 启用过滤器</label>
+        <label>白名单（每行一个）<textarea id="whitelist" rows="3"></textarea></label>
+        <label>黑名单（每行一个）<textarea id="blacklist" rows="3"></textarea></label>
+        <label><input id="regex" type="checkbox"> 正则表达式</label>
+        <label><input id="caseSensitive" type="checkbox"> 区分大小写</label>
+      </fieldset>
+      <details><summary>全部高级配置（JSON）</summary><textarea id="advanced" rows="16"></textarea></details>
+      <div class="actions"><button type="button" id="cancel">取消</button><button class="primary" type="submit">保存</button></div>
+    </form>
+  </dialog>
+  <script src="/miniapp/static/app.js"></script>
+</body>
+</html>

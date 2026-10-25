@@ -1,0 +1,172 @@
+x-app: &app
+  image: nb:local
+  build: .
+  restart: unless-stopped
+  init: true
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  logging: &default-logging
+    driver: json-file
+    options:
+      max-size: 20m
+      max-file: "5"
+
+services:
+  caddy:
+    image: caddy:2.10
+    restart: unless-stopped
+    environment:
+      DOMAIN: $DOMAIN
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+      dashboard:
+        condition: service_healthy
+    logging: *default-logging
+
+  mongo:
+    image: mongo:7.0
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: $MONGO_ROOT_USERNAME
+      MONGO_INITDB_ROOT_PASSWORD_FILE: /run/secrets/mongo_root_password
+      MONGO_APP_USERNAME: $MONGO_APP_USERNAME
+      MONGO_APP_DATABASE: $MONGO_DB_NAME
+      MONGO_APP_PASSWORD_FILE: /run/secrets/mongo_app_password
+    secrets:
+      - mongo_root_password
+      - mongo_app_password
+    volumes:
+      - mongo-data:/data/db
+      - ./docker/mongo-init/01-create-app-user.sh:/docker-entrypoint-initdb.d/01-create-app-user.sh:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - mongosh --quiet --username "$$MONGO_INITDB_ROOT_USERNAME" --password "$$(cat $$MONGO_INITDB_ROOT_PASSWORD_FILE)" --authenticationDatabase admin --eval "quit(db.adminCommand('ping').ok ? 0 : 2)"
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    logging: *default-logging
+
+  api:
+    <<: *app
+    command: ["python", "-m", "nb.cli", "api", "--loud"]
+    environment:
+      MONGO_CON_STR_FILE: /run/secrets/mongo_uri
+      MONGO_DB_NAME: $MONGO_DB_NAME
+      BOT_TOKEN_FILE: /run/secrets/bot_token
+      PUBLIC_BASE_URL: $PUBLIC_BASE_URL
+      ADMIN_TELEGRAM_IDS: $ADMIN_TELEGRAM_IDS
+      WEB_SESSION_HOURS: $WEB_SESSION_HOURS
+      PORT: "8000"
+    secrets:
+      - mongo_uri
+      - bot_token
+    depends_on:
+      mongo:
+        condition: service_healthy
+    expose:
+      - "8000"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 20s
+
+  bot:
+    <<: *app
+    command: ["python", "-m", "nb.cli", "bot", "--loud"]
+    environment:
+      MONGO_CON_STR_FILE: /run/secrets/mongo_uri
+      MONGO_DB_NAME: $MONGO_DB_NAME
+      BOT_TOKEN_FILE: /run/secrets/bot_token
+      API_ID: $API_ID
+      API_HASH_FILE: /run/secrets/api_hash
+      SESSION_ENCRYPTION_KEY_FILE: /run/secrets/session_encryption_key
+      PUBLIC_BASE_URL: $PUBLIC_BASE_URL
+    secrets:
+      - mongo_uri
+      - bot_token
+      - api_hash
+      - session_encryption_key
+    depends_on:
+      mongo:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+
+  dashboard:
+    <<: *app
+    command: ["python", "-m", "nb.cli", "dashboard", "--loud"]
+    environment:
+      CONTROL_API_URL: http://api:8000
+      PORT: "8501"
+    depends_on:
+      api:
+        condition: service_healthy
+    expose:
+      - "8501"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8501/dashboard/_stcore/health', timeout=3)"
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 30s
+
+  worker:
+    <<: *app
+    command: ["python", "-m", "nb.cli", "worker", "--loud"]
+    environment:
+      MONGO_CON_STR_FILE: /run/secrets/mongo_uri
+      MONGO_DB_NAME: $MONGO_DB_NAME
+      API_ID: $API_ID
+      API_HASH_FILE: /run/secrets/api_hash
+      SESSION_ENCRYPTION_KEY_FILE: /run/secrets/session_encryption_key
+      WORKER_CLIENT_CAPACITY: $WORKER_CLIENT_CAPACITY
+      WORKER_LEASE_SECONDS: $WORKER_LEASE_SECONDS
+      WORKER_POLL_SECONDS: $WORKER_POLL_SECONDS
+    secrets:
+      - mongo_uri
+      - api_hash
+      - session_encryption_key
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+secrets:
+  mongo_root_password:
+    file: ./secrets/mongo_root_password
+  mongo_uri:
+    file: ./secrets/mongo_uri
+  mongo_app_password:
+    file: ./secrets/mongo_app_password
+  bot_token:
+    file: ./secrets/bot_token
+  api_hash:
+    file: ./secrets/api_hash
+  session_encryption_key:
+    file: ./secrets/session_encryption_key
+
+volumes:
+  mongo-data:
+  caddy-data:
+  caddy-config:
