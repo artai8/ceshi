@@ -51,7 +51,7 @@ services:
     healthcheck:
       test:
         - CMD-SHELL
-        - mongosh --quiet --username "$$MONGO_INITDB_ROOT_USERNAME" --password "$$(cat $$MONGO_INITDB_ROOT_PASSWORD_FILE)" --authenticationDatabase admin --eval "quit(db.adminCommand('ping').ok ? 0 : 2)"
+        - 'mongosh --quiet --username "$$MONGO_INITDB_ROOT_USERNAME" --password "$$(cat $$MONGO_INITDB_ROOT_PASSWORD_FILE)" --authenticationDatabase admin --eval "quit(db.adminCommand(''ping'').ok ? 0 : 2)"'
       interval: 10s
       timeout: 5s
       retries: 12
