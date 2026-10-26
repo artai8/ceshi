@@ -33,14 +33,14 @@ class LoginAttempt:
 def _get_proxy():
         if os.getenv("PROXY_ENABLED", "1") == "0":
                     return None
-    return (
-        os.getenv("PROXY_TYPE", "socks5"),
-        os.getenv("PROXY_HOST", "127.0.0.1"),
-        int(os.getenv("PROXY_PORT", "7928")),
-    )
+        return (
+            os.getenv("PROXY_TYPE", "socks5"),
+            os.getenv("PROXY_HOST", "127.0.0.1"),
+            int(os.getenv("PROXY_PORT", "7928")),
+        )
 
 
-    class ControlBot:
+class ControlBot:
     def __init__(self, settings: Settings, repository: MongoRepository) -> None:
         self.settings = settings
         self.repo = repository
