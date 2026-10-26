@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import io
 import logging
+import os
 import re
 import time
 from dataclasses import dataclass
@@ -29,12 +30,22 @@ class LoginAttempt:
     waiting_password: bool = False
 
 
-class ControlBot:
+def _get_proxy():
+        if os.getenv("PROXY_ENABLED", "1") == "0":
+                    return None
+                return (
+                            os.getenv("PROXY_TYPE", "socks5"),
+                            os.getenv("PROXY_HOST", "127.0.0.1"),
+                            int(os.getenv("PROXY_PORT", "7928")),
+                )
+
+
+    class ControlBot:
     def __init__(self, settings: Settings, repository: MongoRepository) -> None:
         self.settings = settings
         self.repo = repository
         self.cipher = SessionCipher(settings.session_encryption_key)
-        self.bot = TelegramClient(StringSession(), settings.api_id, settings.api_hash)
+        self.bot = TelegramClient(StringSession(), settings.api_id, settings.api_hash, proxy=_get_proxy())
         self.attempts: dict[int, LoginAttempt] = {}
         self.rate_limits: dict[int, list[float]] = {}
 
@@ -86,7 +97,7 @@ class ControlBot:
         return True
 
     async def _new_client(self) -> TelegramClient:
-        client = TelegramClient(StringSession(), self.settings.api_id, self.settings.api_hash)
+        client = TelegramClient(StringSession(), self.settings.api_id, self.settings.api_hash, proxy=_get_proxy())
         await client.connect()
         return client
 
